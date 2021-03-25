@@ -1,6 +1,6 @@
 import { connect } from "react-redux";
 import RangeInput from "../../components/RangeInput/RangeInput";
-import React, { PureComponent } from "react";
+import React from "react";
 import CharacterAvatar from "../../components/CharacterAvatar/CharacterAvatar";
 import Toggle from "../../components/Toggle/Toggle";
 import OptimizationPlan from "../../domain/OptimizationPlan";
@@ -26,7 +26,7 @@ import setBonuses from "../../constants/setbonuses";
 import TargetStat from "../../domain/TargetStat";
 import characterSettings from "../../constants/characterSettings";
 
-class CharacterEditForm extends PureComponent {
+class CharacterEditForm extends React.Component {
   constructor(props) {
     super(props);
     if (!props.setRestrictions) {
@@ -83,12 +83,14 @@ class CharacterEditForm extends PureComponent {
 
     const slotToPrimaryRestriction = slot =>
       <div key={`mod-block-${slot}`} className={'mod-block'}>
-        <select name={`${slot}-primary`} id={`${slot}-primary`}
-          defaultValue={this.props.target.primaryStatRestrictions[slot]}>
-          <option value={''}>Any</option>
-          {this.props[`${slot}Primaries`].map(
-            primary => <option key={primary} value={primary}>{primary}</option>)}
-        </select>
+        <div className={'dropdown'}>
+          <select name={`${slot}-primary`} id={`${slot}-primary`}
+            defaultValue={this.props.target.primaryStatRestrictions[slot]}>
+            <option value={''}>Any</option>
+            {this.props[`${slot}Primaries`].map(
+              primary => <option key={primary} value={primary}>{primary}</option>)}
+          </select>
+        </div>
         <div className={`mod-image mod-image-${slot}`} />
       </div>;
 
@@ -111,9 +113,11 @@ class CharacterEditForm extends PureComponent {
         <div className={'form-row center'}>
           <label htmlFor='mod-dots' id={'mod-dots-label'}>
             Use only mods with at least&nbsp;
-            <select name={'mod-dots'} id={'mod-dots'} defaultValue={character.optimizerSettings.minimumModDots}>
-              {[1, 2, 3, 4, 5, 6].map(dots => <option key={dots} value={dots}>{dots}</option>)}
-            </select>
+            <span className={'dropdown'}>
+              <select name={'mod-dots'} id={'mod-dots'} defaultValue={character.optimizerSettings.minimumModDots}>
+                {[1, 2, 3, 4, 5, 6].map(dots => <option key={dots} value={dots}>{dots}</option>)}
+              </select>
+            </span>
             &nbsp;dot(s)
           </label>
         </div>
@@ -272,6 +276,7 @@ class CharacterEditForm extends PureComponent {
     const possibleTargetStats = [
       'Health',
       'Protection',
+      'Health+Protection',
       'Speed',
       'Critical Damage',
       'Potency',
@@ -300,38 +305,54 @@ class CharacterEditForm extends PureComponent {
           rightLabel={'Report Only'}
           rightValue={false}
           value={targetStat.target.optimizeForTarget}
+          disabled={targetStat.target.stat === 'Health+Protection'}
         />
         <button type={'button'} className={'red small'} onClick={() => this.props.removeTargetStat(index)}>-</button>
-        <select name={'target-stat-name[]'} defaultValue={targetStat.target.stat}>
-          <option value={''}>No Target</option>
-          {possibleTargetStats.map(stat => <option key={stat} value={stat}>{stat}</option>)}
-        </select>
-        &nbsp;must be between&nbsp;
-        <input
+        <span className={'dropdown'}>
+          <select name={'target-stat-name[]'} defaultValue={targetStat.target.stat}
+            onChange={event => {
+              if (event.target.value === 'Health+Protection') {
+                this.targetStatsShouldOptimize[index].updateValue(false);
+                this.targetStatsShouldOptimize[index].disable();
+              } else {
+                this.targetStatsShouldOptimize[index].enable();
+              }
+            }}
+          >
+            <option value={''}>No Target</option>
+            {possibleTargetStats.map(stat => <option key={stat} value={stat}>{stat}</option>)}
+          </select>
+        </span>
+      &nbsp; must be between &nbsp;
+    <input
           type={'number'}
           step={'any'}
           name={'target-stat-min[]'}
           defaultValue={targetStat.target.minimum} />
-        &nbsp;and&nbsp;
+      &nbsp; and &nbsp;
         <input
           type={'number'}
           step={'any'}
           name={'target-stat-max[]'}
           defaultValue={targetStat.target.maximum} />
         <br />
-        compared to&nbsp;
-        <select name={'target-stat-relative-character[]'} defaultValue={targetStat.target.relativeCharacterId || ''}>
-          <option value={''}>No one</option>
-          {gameSettings.map(
-            gs => <option key={gs.baseID} value={gs.baseID}>{gs.getDisplayName()}</option>
-          )}
-        </select>
-        &nbsp;using&nbsp;
-        <select name={'target-stat-type[]'} defaultValue={targetStat.target.type || '+'}>
-          <option value='+'>+/-</option>
-          <option value='%'>%</option>
-        </select>
-      </div>
+    compared to &nbsp;
+    <span className={'dropdown'}>
+          <select name={'target-stat-relative-character[]'} defaultValue={targetStat.target.relativeCharacterId || ''}>
+            <option value={''}>No one</option>
+            {gameSettings.map(
+              gs => <option key={gs.baseID} value={gs.baseID}>{gs.getDisplayName()}</option>
+            )}
+          </select>
+        </span>
+      &nbsp; using &nbsp;
+    <span className={'dropdown'}>
+          <select name={'target-stat-type[]'} defaultValue={targetStat.target.type || '+'}>
+            <option value='+'>+/-</option>
+            <option value='%'>%</option>
+          </select>
+        </span>
+      </div >
     );
 
     return <div>
